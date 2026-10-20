@@ -1,0 +1,118 @@
+Exercise 5-30E: FDM solution (steel plate on soil)
+1. Heat transfer mechanisms
+Top surface (node 0): convection with air, radiation exchange with the sky, and conduction into the plate.
+Plate interior and soil interior: 1-D steady conduction.
+Steel-soil interface: conduction only (perfect contact, so one temperature).
+Soil bottom (3 ft): fixed temperature of 50°F.
+
+Everything is per 1 ft² of plate area.
+
+2. Coordinate system and nodes
+
+x is measured downward from the top surface of the plate.
+
+Nodes	Location	Material	Spacing
+0	x = 0 (top surface)	steel	boundary node
+1–4	x = 1, 2, 3, 4 in	steel	Δx = 1 in = 0.08333 ft
+5	x = 5 in (interface)	steel/soil	half-cell on each side
+6–9	0.6, 1.2, 1.8, 2.4 ft below the interface	soil	Δx = 0.6 ft
+10	3 ft below the interface	soil	T₁₀ = 50°F (known)
+
+Plate: L = 5 in gives 5 intervals and nodes 0–5. Soil: 3 ft / 0.6 ft gives 5 intervals and nodes 5–10. That makes 11 nodes with 10 unknowns (T₀ to T₉).
+
+3. Governing equation from an energy balance
+
+For a control volume around node m (steady, no generation, area A):
+
+ΣQ̇ into the node = 0
+
+Conduction from a neighbor n is Q̇ = kA(Tₙ − Tₘ)/Δx. This is Fourier’s law with the derivative replaced by a finite difference.
+
+For interior nodes, the volume (AΔx) contains no generation or storage, so the balance reduces to Tₘ₋₁ − 2Tₘ + Tₘ₊₁ = 0. This is the finite-difference form of d²T/dx² = 0.
+
+4. Finite difference equations
+
+Node 0 (half-cell at the surface). Convection and radiation enter from outside, conduction comes from node 1:
+
+h(T∞ − T₀) + εσ(T_sky⁴ − T₀⁴) + k(T₁ − T₀)/Δx = 0
+
+Here T₀ and T_sky in the radiation term must be absolute (°R). I use σ = 0.1714×10⁻⁸ Btu/h·ft²·R⁴ and T(R) = T(°F) + 459.67.
+
+Numerically (k/Δx = 7.2/0.08333 = 86.4 Btu/h·ft²·°F):
+
+3.5(80 − T₀) + 0.6(0.1714×10⁻⁸)[510⁴ − (T₀ + 459.67)⁴] + 86.4(T₁ − T₀) = 0
+
+Nodes 1–4 (steel interior): Tₘ₋₁ − 2Tₘ + Tₘ₊₁ = 0
+
+Node 1: T₀ − 2T₁ + T₂ = 0
+Node 2: T₁ − 2T₂ + T₃ = 0
+Node 3: T₂ − 2T₃ + T₄ = 0
+Node 4: T₃ − 2T₄ + T₅ = 0
+
+Node 5 (interface). The two grid spacings differ and the materials differ. The node’s control volume is half steel and half soil. With no generation or storage, the volume terms vanish. All that matters is that each side uses its own conductance, k/Δx, with its own spacing and conductivity:
+
+k(T₄ − T₅)/Δx_steel + k_soil(T₆ − T₅)/Δx_soil = 0
+
+Here k_soil/Δx_soil = 0.49/0.6 = 0.81667. This gives:
+
+86.4(T₄ − T₅) + 0.81667(T₆ − T₅) = 0, or 86.4 T₄ − 87.21667 T₅ + 0.81667 T₆ = 0
+
+The steel conductance is about 106 times the soil conductance, so the soil controls the heat flow.
+
+Nodes 6–9 (soil interior): the uniform spacing makes the k and Δx terms cancel.
+
+Node 6: T₅ − 2T₆ + T₇ = 0
+Node 7: T₆ − 2T₇ + T₈ = 0
+Node 8: T₇ − 2T₈ + T₉ = 0
+Node 9: T₈ − 2T₉ + T₁₀ = 0
+
+Node 10: T₁₀ = 50°F (Dirichlet condition).
+
+5. Complete system
+
+Ten equations are listed above (node 0 nonlinear, nodes 1–9 linear), plus T₁₀ = 50.
+
+6. Numerical solution
+
+I solved the system with a nonlinear solver (Newton-type, tolerance 10⁻¹³).
+
+Node	T (°F)
+0	74.763
+1	74.717
+2	74.671
+3	74.624
+4	74.578
+5	74.531
+6	69.625
+7	64.719
+8	59.813
+9	54.906
+10	50.000
+7. Surface temperatures
+Top surface of plate (node 0): T ≈ 74.8°F
+Bottom surface of plate (node 5): T ≈ 74.5°F
+
+The plate is nearly isothermal, with a drop of only 0.23°F across 5 in.
+
+8. Energy balance and heat fluxes
+
+At node 0 (Btu/h·ft², positive means into the plate):
+
+Convection from air: 3.5(80 − 74.763) = +18.33
+Net radiation: 0.6(0.1714×10⁻⁹·10)... in full: 0.6(0.1714×10⁻⁸)(6.7652×10¹⁰ − 8.1578×10¹⁰) = −14.32 (net loss to the sky, since the plate at 534.4 R is warmer than the 510 R sky)
+Conduction (leaving downward): 86.4(74.717 − 74.763) = −4.01
+Sum = 18.33 − 14.32 − 4.01 ≈ 0, so the balance closes.
+
+At the interface, steel side: 86.4(74.578 − 74.531) = 4.007. Soil side: 0.81667(69.625 − 74.531) = −4.007. The flux is continuous at 4.007 Btu/h·ft², the same in every layer, as expected for steady 1-D conduction.
+
+9. Independent hand check (thermal resistances)
+R_plate = (5/12)/7.2 = 0.05787 h·ft²·°F/Btu
+R_soil = 3/0.49 = 6.1224 h·ft²·°F/Btu
+R_total = 6.1803
+
+With q = 4.007: T₀ = 50 + 4.007(6.1803) = 74.76°F ✓. T₅ = 74.76 − 4.007(0.05787) = 74.53°F ✓. Each soil step drops by 4.007(0.6/0.49) = 4.906°F ✓.
+
+Assumptions
+σ = 0.1714×10⁻⁸ Btu/h·ft²·R⁴ and °R = °F + 459.67. Using 460 instead shifts T₀ by only about 0.05°F (74.72°F).
+The problem gives no emissivity effect on absorbed sky radiation beyond ε (absorptivity equals emissivity, a gray surface).
+Steady state, 1-D, constant properties, no generation, and no contact resistance.
