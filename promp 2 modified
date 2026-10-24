@@ -1,0 +1,55 @@
+PROJECT: Exercise 5-30E – Modified Thermal Conductivity Design
+
+BACKGROUND:
+I previously solved Exercise 5-30E using the Finite Difference Method (FDM). The system consists of a steel plate resting on soil, with convection and radiation at the upper surface and a prescribed soil temperature at a depth of 3 ft.
+
+My engineering objective is to investigate whether increasing the soil's effective thermal conductivity can increase the steady-state heat transfer rate.
+
+ORIGINAL PARAMETERS:
+- Steel plate thickness: 5 in
+- Steel thermal conductivity: 7.2 Btu/(h·ft·°F)
+- Soil thermal conductivity: 0.49 Btu/(h·ft·°F)
+- Surface emissivity: 0.6
+- Ambient air temperature: 80°F
+- Convection coefficient: 3.5 Btu/(h·ft²·°F)
+- Equivalent sky temperature: 510°R
+- Soil temperature at 3 ft depth: 50°F
+- Steel node spacing: 1 in
+- Soil node spacing: 0.6 ft
+- Total nodes: 11, numbered 0 through 10
+
+PROPOSED MODIFICATION:
+Increase the effective thermal conductivity of the soil from 0.49 to 1.50 Btu/(h·ft·°F).
+
+Treat 1.50 as a hypothetical design value rather than a verified material property.
+
+Keep all other physical parameters and boundary conditions unchanged.
+
+ASSUMPTIONS:
+- Steady-state, one-dimensional heat transfer
+- Constant thermal conductivity in each material
+- No internal heat generation
+- Perfect thermal contact between steel and soil
+- Convection and radiation at the exposed steel surface
+
+TASKS:
+
+1. Explain the physical reasoning behind increasing soil thermal conductivity.
+2. Calculate the original and modified thermal resistances of the steel and soil.
+3. Derive the finite difference equations for all 11 nodes.
+4. Carefully derive the interface equation at node 5, accounting for unequal thermal conductivities and nodal spacing.
+5. Apply the nonlinear convection-radiation boundary condition at node 0.
+6. Solve the modified system numerically and report all nodal temperatures.
+7. Compare the original and modified top and bottom steel surface temperatures.
+8. Calculate the original and modified steady-state heat fluxes.
+9. Calculate the percentage change in heat flux and thermal resistance.
+10. Independently verify the numerical solution using a thermal resistance model and an overall surface energy balance.
+11. Explain why the percentage increase in heat flux may differ from the percentage increase in thermal conductivity.
+12. Discuss realistic engineering approaches to increase effective soil conductivity and their limitations, without claiming that a particular material has the assumed conductivity unless independently verified.
+13. Clearly distinguish an increase in steady-state heat transfer rate from a reduction in heating or cooling time. Do not calculate transient time without additional material properties and a transient model.
+14. Present a comparison table and a concise engineering conclusion.
+
+IMPORTANT:
+Show all equations, intermediate calculations, units, assumptions, and numerical checks. Do not invent missing data. Clearly flag any uncertainty or discrepancy with the original solution.
+
+Use the attached exercise image and the original Claude solution to verify node numbering and boundary conditions.  
