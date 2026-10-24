@@ -1,0 +1,153 @@
+Exercise 5-30E: effect of raising soil conductivity from 0.49 to 1.50 Btu/(h·ft·°F)
+
+I re-solved both cases with the same code and the same node layout. All numbers below come from that solver, and I hand-checked them with a resistance model. 1.50 is treated as a hypothetical design value, not a verified property.
+
+Verification against the image and my first solution
+Node layout confirmed: nodes 0–5 are in the steel (5 intervals of 1 in, node 5 at the interface). Nodes 5–10 are in the soil (5 intervals of 0.6 ft). Node 10 sits at 3 ft depth and is fixed at 50°F.
+Discrepancy to flag: in the first answer’s radiation line I wrote a garbled expression (“0.6(0.1714×10⁻⁹·10)... in full:”). Please ignore that fragment. The correct term is 0.6(0.1714×10⁻⁸)(510⁴ − (T₀+459.67)⁴), which gives −14.32 Btu/h·ft². The numerical results in that answer were unaffected.
+Same assumptions as before: σ = 0.1714×10⁻⁸ Btu/h·ft²·R⁴ and °R = °F + 459.67. Using 460 instead shifts temperatures by about 0.05°F.
+1. Physical reasoning
+
+Heat enters the plate from the 80°F air (convection) and is partly lost to the cold sky (radiation). The net gain is conducted through the steel and then the soil to the 50°F boundary at 3 ft.
+
+The steel and the soil are thermal resistances in series, and the soil dominates: its resistance is about 99% of the total. The steel is thin and conductive and contributes almost nothing.
+
+Raising k_soil shrinks the dominant resistance. The plate surface can then sit closer to the 50°F sink, so more heat is drawn in from the air (convection increases) and less is lost to the sky (radiation decreases).
+
+2. Thermal resistances (per 1 ft², h·ft²·°F/Btu)
+
+R = L/k
+
+Quantity	Original	Modified
+R_steel = (5/12 ft)/7.2	0.05787	0.05787
+R_soil = 3 ft/k_soil	3/0.49 = 6.1224	3/1.5 = 2.0000
+R_total (T₀ to 50°F)	6.1803	2.0579
+
+The soil’s share of R_total drops from 99.1% to 97.2%.
+
+3. Finite difference equations (all 11 nodes)
+
+Let Δx_s = 1/12 ft and Δx_g = 0.6 ft. Then k/Δx_s = 86.4 Btu/h·ft²·°F.
+
+Node 0 (nonlinear): h(T∞ − T₀) + εσ[T_sky⁴ − (T₀+459.67)⁴] + 86.4(T₁ − T₀) = 0
+Nodes 1–4 (steel): Tₘ₋₁ − 2Tₘ + Tₘ₊₁ = 0
+Node 5 (interface): see section 4.
+Nodes 6–9 (soil): Tₘ₋₁ − 2Tₘ + Tₘ₊₁ = 0
+Node 10: T₁₀ = 50°F
+4. Interface equation at node 5
+
+Take a control volume around node 5. It is half steel (thickness Δx_s/2) and half soil (thickness Δx_g/2), with area A.
+
+Steady state, no generation and no storage give:
+
+Q̇ from steel + Q̇ from soil = 0
+
+k·A(T₄ − T₅)/Δx_s + k_soil·A(T₆ − T₅)/Δx_g = 0
+
+Unequal properties and spacing. Each conduction term uses its own conductivity and its own distance to the neighboring node. The half-volume sizes multiply only generation and storage terms, which are zero here, so they cancel. No interpolation or averaging of k is needed.
+
+Dividing by A and inserting numbers:
+
+Original: 86.4(T₄ − T₅) + 0.81667(T₆ − T₅) = 0, i.e. 86.4T₄ − 87.2167T₅ + 0.81667T₆ = 0
+Modified (k_soil/Δx_g = 1.5/0.6 = 2.5): 86.4(T₄ − T₅) + 2.5(T₆ − T₅) = 0, i.e. 86.4T₄ − 88.9T₅ + 2.5T₆ = 0
+
+The steel-to-soil conductance ratio falls from about 106 to about 35.
+
+5. Node 0 boundary condition (modified case)
+
+The surface half-cell receives convection and radiation from outside and conduction from node 1. The equation is the same as above. Only T₀ appears raised to the fourth power, and it must be in °R. This is the only nonlinear equation, so I solved it with a Newton-type solver.
+
+6. Modified solution, all nodes
+Node	Location	Original T (°F)	Modified T (°F)
+0	steel top	74.763	73.023
+1	1 in	74.717	72.893
+2	2 in	74.671	72.764
+3	3 in	74.624	72.634
+4	4 in	74.578	72.505
+5	interface (steel bottom)	74.531	72.375
+6	soil, 0.6 ft	69.625	67.900
+7	soil, 1.2 ft	64.719	63.425
+8	soil, 1.8 ft	59.813	58.950
+9	soil, 2.4 ft	54.906	54.475
+10	soil, 3.0 ft	50.000	50.000
+7. Surface temperature comparison
+	Original	Modified	Change
+Top surface (node 0)	74.763°F	73.023°F	−1.74°F
+Bottom surface (node 5)	74.531°F	72.375°F	−2.16°F
+Drop across steel	0.232°F	0.647°F	+0.415°F
+8. Heat fluxes (Btu/h·ft², positive = into the ground)
+Term	Original	Modified
+Convection in: h(80 − T₀)	+18.328	+24.421
+Net radiation: εσ(T_sky⁴ − T₀⁴)	−14.322	−13.234
+Conduction into plate and ground, q	4.007	11.188
+Surface balance residual	≈ 0	≈ 0
+9. Percentage changes
+Quantity	Change
+k_soil: 0.49 → 1.50	+206.1%
+R_soil: 6.1224 → 2.0000	−67.3%
+R_total: 6.1803 → 2.0579	−66.7%
+Heat flux q: 4.007 → 11.188	+179.2% (factor 2.79)
+10. Independent verification
+
+Resistance model. Heat flux is q = (T₀ − 50)/R_total, and the surface must satisfy the energy balance:
+
+h(80 − T₀) + εσ(T_sky⁴ − T₀⁴) = (T₀ − 50)/R_total
+
+Modified case, with T₀ = 73.0225°F (T₀ = 532.69 R, T₀⁴ = 8.052×10¹⁰ R⁴):
+
+Convection: 3.5(6.9775) = +24.421
+Radiation: 0.6(0.1714×10⁻⁸)(6.7652×10¹⁰ − 8.052×10¹⁰) = −13.234
+Left side: 24.421 − 13.234 = 11.187
+Right side: 23.0225/2.05787 = 11.188 ✓
+
+Reconstructing the temperatures from q = 11.1875:
+
+Steel drop: 11.1875 × 0.05787 = 0.647°F, so T₅ = 73.023 − 0.647 = 72.375°F ✓
+Soil step: 11.1875 × (0.6/1.5) = 4.475°F per node, giving 67.900, 63.425, 58.950, 54.475, 50.000 ✓
+
+Original case (T₀ = 74.763°F): q = 24.763/6.1803 = 4.007 ✓.
+
+Both methods agree. This is expected because the conduction profile is piecewise linear, which the finite difference scheme represents exactly. Only the radiation boundary requires iteration.
+
+11. Why the flux rises less than the conductivity
+The soil conductivity rises by a factor of 3.06, and R_total falls by a factor of 3.00 (6.1803/2.0579). R_total drops slightly less than R_soil because the unchanged steel resistance (0.058) is a larger share of the smaller total.
+The flux ratio is 2.79, a little lower still. The driving temperature difference (T₀ − 50) also shrinks, from 24.76°F to 23.02°F (a factor of 0.930). This happens because the surface cools toward the sink, so the surface boundary condition supplies a smaller potential. Then 3.00 × 0.930 ≈ 2.79 ✓.
+The surface is a nonlinear boundary, not a fixed-temperature source. Its convection plus radiation behave like a finite resistance of their own (the effective combined surface coefficient is about 3.5 + 0.58 ≈ 4.1 Btu/h·ft²·°F, a resistance near 0.24). Once the soil resistance is small, this surface resistance becomes a growing share of the total.
+
+Diminishing returns. Using the same model with only k_soil changed, the flux saturates:
+
+k_soil (Btu/h·ft·°F)	q (Btu/h·ft²)	T₀ (°F)
+0.49	4.01	74.76
+1.0	7.80	73.84
+1.5	11.19	73.02
+3.0	19.79	70.93
+10	42.82	65.32
+∞ (R_soil → 0)	≈ 85	≈ 54.95
+
+Even an infinitely conductive soil column would give only about 85 Btu/h·ft², which is the limit set by the surface and steel.
+
+12. Realistic approaches and limitations
+
+I am not assigning a conductivity to any material here. Any value would have to be measured.
+
+Densification or compaction: more grain-to-grain contact generally raises conductivity. The effect is limited by the soil type and compaction depth.
+Moisture control: water fills air gaps and generally raises conductivity. It is hard to maintain, because the soil can dry out, and freeze-thaw and moisture migration change the effective value over time.
+Thermally enhanced backfill or grout: engineered mixes (for example graded sands, cementitious or additive-modified grouts) are used where heat transfer matters, such as buried cables and ground heat exchangers. Their performance depends on the specific product, its long-term stability, and cost. Replacing a 3 ft deep column of soil is a very large excavation.
+Measurement: the effective conductivity of any candidate soil should come from testing (for example a thermal needle probe method, which I believe is ASTM D5334, so please confirm the standard) rather than assumed.
+Model limitations: the fixed 50°F at 3 ft is only defensible if the deeper soil is far larger than the modified zone. With a much more conductive layer, that boundary, 1-D behavior, and the neglect of lateral spreading and groundwater flow should be rechecked.
+13. Steady-state rate versus time to heat or cool
+
+The analysis above gives only the steady-state heat transfer rate, which depends on resistances. How fast the system approaches steady state depends on thermal diffusivity α = k/(ρc_p), which requires density and specific heat. Additives that raise k can also change ρ and c_p, so a higher conductivity does not automatically mean faster response. I have not computed any transient time, because that needs those properties plus a transient model.
+
+14. Comparison table and conclusion
+Quantity	Original	Modified	Change
+k_soil (Btu/h·ft·°F)	0.49	1.50	+206.1%
+R_soil (h·ft²·°F/Btu)	6.1224	2.0000	−67.3%
+R_total (h·ft²·°F/Btu)	6.1803	2.0579	−66.7%
+T_top (°F)	74.763	73.023	−1.74°F
+T_bottom (°F)	74.531	72.375	−2.16°F
+Convection in (Btu/h·ft²)	18.33	24.42	+6.09
+Net radiation loss (Btu/h·ft²)	14.32	13.23	−1.09
+q (Btu/h·ft²)	4.007	11.188	+179.2%
+
+Conclusion. Raising the soil conductivity from 0.49 to 1.50 increases the steady-state heat flux from the air through the plate into the ground by about 179% (4.0 to 11.2 Btu/h·ft²). The plate surface cools by about 2°F. The gain is slightly less than the conductivity increase because the surface temperature falls, which reduces the driving potential, and further increases in conductivity would have progressively smaller effects. The result applies only if 1.50 can actually be achieved and held in the real soil, and it says nothing about transient response speed.
