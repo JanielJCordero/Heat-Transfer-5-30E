@@ -1,0 +1,585 @@
+# Transient Heat Transfer Analysis Using an Implicit Numerical Method
+
+## 1. Objective
+
+The objective of this analysis is to determine whether increasing the effective thermal conductivity of the soil reduces the cooling time of a steel plate resting on the ground.
+
+The original Exercise 5-30E provides a steady-state heat transfer problem. To evaluate cooling time, the problem was extended to a transient heat transfer model by incorporating thermal energy accumulation.
+
+Two cases were analyzed:
+
+- **Original case:** Soil thermal conductivity of 0.49 Btu/(h·ft·°F).
+- **Modified case:** Soil thermal conductivity of 1.50 Btu/(h·ft·°F).
+
+Both cases were simulated using identical initial temperatures, material heat capacities, geometry, and boundary conditions. The cooling time was defined as the time required for the steel-soil interface (node 5) to decrease from 80°F to 75°F.
+
+## 2. Problem Data and Assumptions
+
+The following properties were retained from the original exercise:
+
+| Parameter | Value |
+|---|---|
+| Steel plate thickness | 5 in |
+| Soil depth | 3 ft |
+| Steel thermal conductivity | 7.2 Btu/(h·ft·°F) |
+| Original soil conductivity | 0.49 Btu/(h·ft·°F) |
+| Modified soil conductivity | 1.50 Btu/(h·ft·°F) |
+| Ambient air temperature | 80°F |
+| Effective sky temperature | 510°R |
+| Convection coefficient | 3.5 Btu/(h·ft²·°F) |
+| Surface emissivity | 0.6 |
+| Bottom boundary temperature | 50°F |
+
+Additional representative properties were assumed because the original steady-state exercise did not provide density or specific heat:
+
+| Material | Density (kg/m³) | Specific heat (J/kg·K) |
+|---|---:|---:|
+| Steel | 7,850 | 490 |
+| Soil | 1,300 | 830 |
+
+The transient model also assumes:
+
+- One-dimensional heat transfer.
+- Constant thermal properties.
+- Perfect thermal contact between the steel and soil.
+- No internal heat generation.
+- An initially uniform temperature of 80°F at nodes 0–9.
+- A constant temperature of 50°F at node 10.
+- A target temperature of 75°F at node 5.
+
+The initial and target temperatures are additional assumptions introduced specifically for the transient comparison.
+
+## 3. Governing Energy Balance
+
+The first law of thermodynamics is expressed as:
+
+\[
+\dot E_{in}-\dot E_{out}+\dot E_{gen}=\dot E_{acc}
+\]
+
+Since there is no internal heat generation:
+
+\[
+\dot E_{in}-\dot E_{out}=\dot E_{acc}
+\]
+
+The thermal energy accumulation term is:
+
+\[
+\dot E_{acc}=\rho VC_p\frac{dT}{dt}
+\]
+
+Dividing by the cross-sectional area:
+
+\[
+q''_{in}-q''_{out}
+=\rho C_p\frac{V}{A}\frac{dT}{dt}
+\]
+
+This relationship was applied to the control volume surrounding each node.
+
+## 4. Thermal Properties and Nodal Heat Capacities
+
+All calculations were performed using SI units.
+
+The spatial increments are:
+
+\[
+\Delta x_s=1\ \text{in}=0.0254\ \text{m}
+\]
+
+\[
+\Delta x_g=0.6\ \text{ft}=0.18288\ \text{m}
+\]
+
+The steel thermal conductivity is:
+
+\[
+k_s=7.2(1.730735)=12.4613\ \text{W/(m·K)}
+\]
+
+The soil conductivities are:
+
+\[
+k_{g,o}=0.49(1.730735)=0.8481\ \text{W/(m·K)}
+\]
+
+\[
+k_{g,m}=1.50(1.730735)=2.5961\ \text{W/(m·K)}
+\]
+
+The thermal conductance coefficients per unit area are:
+
+\[
+G_s''=\frac{k_s}{\Delta x_s}
+=\frac{12.4613}{0.0254}
+=490.602\ \text{W/(m²·K)}
+\]
+
+\[
+G_{g,o}''=\frac{0.8481}{0.18288}
+=4.63725\ \text{W/(m²·K)}
+\]
+
+\[
+G_{g,m}''=\frac{2.5961}{0.18288}
+=14.19566\ \text{W/(m²·K)}
+\]
+
+The nodal heat capacity per unit area is defined as:
+
+\[
+C_i''=\rho C_p\frac{V_i}{A}
+\]
+
+For the upper steel surface, node 0:
+
+\[
+C_0''=\rho_sC_{p,s}\frac{\Delta x_s}{2}
+\]
+
+\[
+C_0''=7850(490)(0.0127)
+=48,850.55\ \text{J/(m²·K)}
+\]
+
+For steel interior nodes 1–4:
+
+\[
+C_s''=\rho_sC_{p,s}\Delta x_s
+\]
+
+\[
+C_s''=7850(490)(0.0254)
+=97,701.10\ \text{J/(m²·K)}
+\]
+
+For the steel-soil interface, node 5:
+
+\[
+C_5''=
+\rho_sC_{p,s}\frac{\Delta x_s}{2}
++\rho_gC_{p,g}\frac{\Delta x_g}{2}
+\]
+
+\[
+C_5''=48,850.55+98,663.76
+\]
+
+\[
+\boxed{C_5''=147,514.31\ \text{J/(m²·K)}}
+\]
+
+For soil interior nodes 6–9:
+
+\[
+C_g''=\rho_gC_{p,g}\Delta x_g
+\]
+
+\[
+C_g''=1300(830)(0.18288)
+=197,327.52\ \text{J/(m²·K)}
+\]
+
+## 5. Transient Finite-Difference Equations
+
+### 5.1. Node 0: Upper Steel Surface
+
+The upper surface exchanges heat through convection, radiation, and conduction.
+
+\[
+C_0''\frac{dT_0}{dt}
+=h(T_\infty-T_0)
++\varepsilon\sigma(T_{sky}^4-T_0^4)
++G_s''(T_1-T_0)
+\]
+
+Substituting the known coefficients:
+
+\[
+\begin{aligned}
+48,850.55\frac{dT_0}{dt}
+={}&19.8739(299.8167-T_0)\\
+&+0.6(5.670374419\times10^{-8})(283.3333^4-T_0^4)\\
+&+490.602(T_1-T_0)
+\end{aligned}
+\]
+
+Absolute temperatures in the radiation term are expressed in kelvin.
+
+### 5.2. Nodes 1–4: Steel Interior
+
+\[
+C_s''\frac{dT_i}{dt}
+=G_s''(T_{i-1}-2T_i+T_{i+1})
+\]
+
+Therefore:
+
+\[
+97,701.10\frac{dT_i}{dt}
+=490.602(T_{i-1}-2T_i+T_{i+1})
+\]
+
+for \(i=1,2,3,4\).
+
+### 5.3. Node 5: Steel-Soil Interface
+
+The interface receives heat from the steel and exchanges heat with the soil.
+
+\[
+C_5''\frac{dT_5}{dt}
+=G_s''(T_4-T_5)+G_g''(T_6-T_5)
+\]
+
+**Original case:**
+
+\[
+\boxed{
+147,514.31\frac{dT_5}{dt}
+=490.602(T_4-T_5)+4.63725(T_6-T_5)
+}
+\]
+
+**Modified case:**
+
+\[
+\boxed{
+147,514.31\frac{dT_5}{dt}
+=490.602(T_4-T_5)+14.19566(T_6-T_5)
+}
+\]
+
+The change in soil thermal conductivity directly affects the conductive term between nodes 5 and 6.
+
+### 5.4. Nodes 6–9: Soil Interior
+
+\[
+C_g''\frac{dT_i}{dt}
+=G_g''(T_{i-1}-2T_i+T_{i+1})
+\]
+
+**Original case:**
+
+\[
+197,327.52\frac{dT_i}{dt}
+=4.63725(T_{i-1}-2T_i+T_{i+1})
+\]
+
+**Modified case:**
+
+\[
+197,327.52\frac{dT_i}{dt}
+=14.19566(T_{i-1}-2T_i+T_{i+1})
+\]
+
+for \(i=6,7,8,9\).
+
+The bottom boundary is maintained at:
+
+\[
+T_{10}(t)=50^\circ F
+\]
+
+## 6. Implicit Numerical Integration
+
+The transient equations form a system of ten coupled ordinary differential equations.
+
+An implicit integration method was used to calculate the temperature evolution.
+
+### 6.1. Backward Euler Formulation
+
+The time derivative is approximated using:
+
+\[
+\frac{dT_i}{dt}
+\approx\frac{T_i^{n+1}-T_i^n}{\Delta t}
+\]
+
+Unlike an explicit method, Backward Euler evaluates the heat transfer terms at the unknown future time \(n+1\).
+
+For node 5:
+
+\[
+\begin{aligned}
+C_5''\frac{T_5^{n+1}-T_5^n}{\Delta t}
+={}&G_s''(T_4^{n+1}-T_5^{n+1})\\
+&+G_g''(T_6^{n+1}-T_5^{n+1})
+\end{aligned}
+\]
+
+Rearranging:
+
+\[
+\begin{aligned}
+&\left(1+\frac{\Delta t(G_s''+G_g'')}{C_5''}\right)T_5^{n+1}\\
+&-\frac{\Delta tG_s''}{C_5''}T_4^{n+1}
+-\frac{\Delta tG_g''}{C_5''}T_6^{n+1}
+=T_5^n
+\end{aligned}
+\]
+
+### 6.2. First Time Step: Original Case
+
+For a time step of one hour:
+
+\[
+\Delta t=3600\ \text{s}
+\]
+
+The steel coefficient is:
+
+\[
+a_s=\frac{3600(490.602)}{147,514.31}
+=11.97285
+\]
+
+The original soil coefficient is:
+
+\[
+a_{g,o}=\frac{3600(4.63725)}{147,514.31}
+=0.11317
+\]
+
+Substitution gives:
+
+\[
+\boxed{
+13.08602T_5^1
+-11.97285T_4^1
+-0.11317T_6^1=80
+}
+\]
+
+### 6.3. First Time Step: Modified Case
+
+The modified soil coefficient is:
+
+\[
+a_{g,m}=\frac{3600(14.19566)}{147,514.31}
+=0.34644
+\]
+
+Therefore:
+
+\[
+\boxed{
+13.31929T_5^1
+-11.97285T_4^1
+-0.34644T_6^1=80
+}
+\]
+
+These equations cannot be solved independently because the temperatures of neighboring nodes are also unknown.
+
+Consequently, all ten transient equations must be solved simultaneously.
+
+## 7. Nonlinear System and Newton-Raphson Method
+
+The unknown nodal temperatures are arranged into the vector:
+
+\[
+\mathbf T^{n+1}
+=
+[T_0^{n+1},T_1^{n+1},\ldots,T_9^{n+1}]^T
+\]
+
+The implicit equations can be expressed as:
+
+\[
+\mathbf F(\mathbf T^{n+1})
+=\mathbf T^{n+1}-\mathbf T^n
+-\Delta t\,\mathbf f(\mathbf T^{n+1})=\mathbf0
+\]
+
+Because the upper surface contains the nonlinear radiation term \(T_0^4\), the complete system is nonlinear.
+
+Newton-Raphson can be applied:
+
+\[
+\mathbf J(\mathbf T^{(j)})\Delta\mathbf T
+=-\mathbf F(\mathbf T^{(j)})
+\]
+
+\[
+\mathbf T^{(j+1)}
+=\mathbf T^{(j)}+\Delta\mathbf T
+\]
+
+where \(\mathbf J\) is the Jacobian matrix.
+
+For the upper surface, the diagonal Jacobian element is:
+
+\[
+J_{00}
+=1+\frac{\Delta t}{C_0''}
+\left(h+4\varepsilon\sigma T_0^3+G_s''\right)
+\]
+
+The neighboring-node element is:
+
+\[
+J_{01}=-\frac{\Delta tG_s''}{C_0''}
+\]
+
+The numerical solver repeats the iterations until the residuals of the energy-balance equations are sufficiently small.
+
+## 8. Cooling-Time Determination
+
+The initial temperatures are:
+
+\[
+T_i(0)=80^\circ F,\quad i=0,\ldots,9
+\]
+
+The target temperature at the steel-soil interface is:
+
+\[
+T_5(t)=75^\circ F
+\]
+
+The numerical solution is evaluated until the target is reached.
+
+For a fixed-step method, if the temperature crosses 75°F between two consecutive time steps, linear interpolation can be used:
+
+\[
+\boxed{
+t_{75}=t_n+
+\frac{T_5^n-75}{T_5^n-T_5^{n+1}}\Delta t
+}
+\]
+
+For example, with Backward Euler and a one-hour step in the original case:
+
+\[
+T_5(70\ \text{h})\approx75.003081^\circ F
+\]
+
+\[
+T_5(71\ \text{h})\approx74.990010^\circ F
+\]
+
+Therefore:
+
+\[
+t_{75}
+=70+\frac{75.003081-75}{75.003081-74.990010}(1)
+\]
+
+\[
+\boxed{t_{75}\approx70.236\ \text{h}}
+\]
+
+This is the approximate crossing time obtained using a one-hour Backward Euler time step.
+
+## 9. Time-Step Convergence
+
+The numerical calculation was repeated using progressively smaller time steps.
+
+| Numerical method | Original cooling time (h) | Modified cooling time (h) |
+|---|---:|---:|
+| Backward Euler, Δt = 1 h | 70.236 | 20.293 |
+| Backward Euler, Δt = 0.1 h | 69.368 | 19.834 |
+| Backward Euler, Δt = 0.01 h | 69.281 | 19.788 |
+| Adaptive BDF reference solution | 69.271 | 19.783 |
+
+The results approach consistent values as the time step decreases.
+
+The adaptive BDF method uses variable time steps and, when appropriate, higher-order backward differentiation formulas. It is related to Backward Euler but is not identical to fixed-step first-order integration.
+
+## 10. Cooling-Time Comparison
+
+The reference numerical results are:
+
+**Original case:**
+
+\[
+\boxed{t_o=69.271\ \text{h}}
+\]
+
+**Modified case:**
+
+\[
+\boxed{t_m=19.783\ \text{h}}
+\]
+
+The reduction in cooling time is:
+
+\[
+\%\text{ reduction}
+=\frac{t_o-t_m}{t_o}(100)
+\]
+
+Substituting:
+
+\[
+=\frac{69.271-19.783}{69.271}(100)
+\]
+
+\[
+=\frac{49.488}{69.271}(100)
+\]
+
+\[
+\boxed{\%\text{ reduction}=71.44\%}
+\]
+
+The time saved is:
+
+\[
+\Delta t=69.271-19.783
+\]
+
+\[
+\boxed{\Delta t=49.488\ \text{h}}
+\]
+
+The ratio of cooling times is:
+
+\[
+\frac{69.271}{19.783}\approx3.50
+\]
+
+Therefore, under the selected transient conditions, the modified system reaches the target temperature approximately 3.50 times faster.
+
+## 11. Validation Against Steady-State Results
+
+The transient solutions should approach the corresponding steady-state temperatures calculated for the original and modified problems.
+
+| Node | Original steady state (°F) | Modified steady state (°F) |
+|---|---:|---:|
+| 0 | 74.763 | 73.023 |
+| 5 | 74.531 | 72.375 |
+| 9 | 54.906 | 54.475 |
+
+These steady-state values provide a reference for checking the long-time behavior of the transient model.
+
+Small numerical differences may occur because of rounding and the precision used for physical constants.
+
+## 12. Discussion
+
+Increasing the soil thermal conductivity from 0.49 to 1.50 Btu/(h·ft·°F) increases the ability of the soil to conduct thermal energy toward the fixed-temperature lower boundary.
+
+In the original system, the soil presents a relatively high thermal resistance, limiting heat transfer through the ground.
+
+In the modified system, the lower conductive resistance allows thermal energy to be transported more effectively.
+
+Although the modified system does not necessarily have a lower temperature at every instant during the transient, it reaches the selected interface temperature of 75°F significantly earlier.
+
+The numerical results indicate that the cooling time decreases from approximately 69.27 hours to 19.78 hours, representing a 71.44% reduction.
+
+This improvement is specific to the assumed material properties, initial temperature distribution, boundary conditions, and target temperature. A different thermal scenario could produce a different percentage improvement.
+
+## 13. Conclusion
+
+A transient finite-difference model was developed from the first law of thermodynamics to investigate the effect of soil thermal conductivity on the cooling response of a steel plate resting on the ground.
+
+The model included conduction through the steel and soil, convection and radiation at the upper surface, and thermal energy accumulation in each control volume.
+
+Two numerical simulations were conducted using identical initial and boundary conditions, with soil conductivity as the only modified parameter.
+
+The original system required approximately **69.27 hours** for the steel-soil interface to cool from 80°F to 75°F, whereas the modified system required approximately **19.78 hours**.
+
+The resulting **71.44% reduction in cooling time** demonstrates that increasing the effective thermal conductivity of the soil can substantially improve the cooling performance under the specified conditions.
+
+The transient analysis extends the original steady-state exercise by introducing representative thermal storage properties and explicit initial and target temperatures. The numerical integration results should therefore be interpreted within these modeling assumptions.
